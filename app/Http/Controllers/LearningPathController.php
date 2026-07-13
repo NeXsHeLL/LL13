@@ -19,6 +19,9 @@ class LearningPathController extends Controller
 
         Gate::forUser($user)->authorize('viewAny', LearningPath::class);
 
+        $questCatalog = collect($learningQuestFactory->catalog());
+        $studyPlansByTitle = $questCatalog->keyBy('title')->map(fn (array $quest): array => $quest['study_plan']);
+
         $paths = $user->learningPaths()
             ->withSum('logs as logged_minutes', 'minutes')
             ->withCount([
@@ -49,6 +52,7 @@ class LearningPathController extends Controller
                 'checkpoints_count' => $path->checkpoints_count,
                 'completed_checkpoints_count' => $path->completed_checkpoints_count,
                 'created_at' => $path->created_at->toDateString(),
+                'study_plan' => $studyPlansByTitle->get($path->title, []),
                 'checkpoints' => $path->checkpoints->map(fn ($checkpoint): array => [
                     'id' => $checkpoint->id,
                     'title' => $checkpoint->title,
@@ -81,7 +85,7 @@ class LearningPathController extends Controller
         return Inertia::render('dashboard', [
             'paths' => $paths,
             'stats' => $stats,
-            'questCatalog' => $learningQuestFactory->catalog(),
+            'questCatalog' => $questCatalog->values(),
         ]);
     }
 

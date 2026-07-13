@@ -145,6 +145,24 @@ class LearningPathTest extends TestCase
         }
     }
 
+    public function test_guided_learning_catalog_exposes_study_plans(): void
+    {
+        $catalog = app(LearningQuestFactory::class)->catalog();
+
+        foreach ($catalog as $quest) {
+            $this->assertArrayHasKey('study_plan', $quest);
+            $this->assertCount(3, $quest['study_plan']);
+
+            foreach ($quest['study_plan'] as $phase) {
+                $this->assertContains($phase['id'], ['basics', 'intermediate', 'advanced']);
+                $this->assertNotEmpty($phase['title']);
+                $this->assertNotEmpty($phase['lesson']);
+                $this->assertNotEmpty($phase['practice']);
+                $this->assertNotEmpty($phase['readiness']);
+            }
+        }
+    }
+
     public function test_every_guided_mcq_includes_an_explanation(): void
     {
         $learningQuestFactory = app(LearningQuestFactory::class);
@@ -205,6 +223,25 @@ class LearningPathTest extends TestCase
 
         $this->assertIsArray($checkpoint);
         $this->assertArrayNotHasKey('correct_option', $checkpoint);
+    }
+
+    public function test_dashboard_exposes_study_plan_for_generated_quests(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('learning-paths.quest.store'), [
+            'quest' => 'laravel-full-stack',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('dashboard'));
+
+        $response->assertOk();
+
+        $studyPlan = data_get($response->inertiaProps(), 'paths.0.study_plan');
+
+        $this->assertIsArray($studyPlan);
+        $this->assertCount(3, $studyPlan);
+        $this->assertSame(['basics', 'intermediate', 'advanced'], collect($studyPlan)->pluck('id')->all());
     }
 
     public function test_users_can_toggle_learning_checkpoints(): void

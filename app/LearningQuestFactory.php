@@ -29,6 +29,7 @@ class LearningQuestFactory
                         ->countBy('difficulty')
                         ->only(['basics', 'intermediate', 'advanced'])
                         ->all(),
+                    'study_plan' => $this->studyPlanFor($id),
                 ];
             })
             ->values()
@@ -594,6 +595,122 @@ class LearningQuestFactory
                 ], 'A', 'Rollback signals turn vague concern into concrete thresholds for reverting or fixing forward.'),
                 $this->task('Advanced', 'Create an operations checklist', 'Write a short checklist for logs, queues, migrations, assets, config cache, and one HTTP health proof.'),
             ],
+        ];
+    }
+
+    /**
+     * @return list<array<string, string>>
+     */
+    private function studyPlanFor(string $quest): array
+    {
+        return match ($quest) {
+            'php-foundations' => [
+                $this->studyPhase(
+                    'basics',
+                    'Learn the PHP building blocks',
+                    'Start by reading values, naming variables clearly, and tracing how arrays hold related data.',
+                    'Before the quiz, write two tiny scripts: one that prints typed values and one that loops over a topic list.',
+                    'You are ready when you can explain variables, arrays, foreach, and string joining without looking them up.',
+                ),
+                $this->studyPhase(
+                    'intermediate',
+                    'Turn snippets into reusable code',
+                    'Focus on functions, classes, namespaces, and Composer as the tools that keep PHP code organized.',
+                    'Practice by moving repeated logic into a typed function, then into a small class with one public method.',
+                    'You are ready when you can say what belongs in a function, what belongs in a class, and why autoloading matters.',
+                ),
+                $this->studyPhase(
+                    'advanced',
+                    'Build predictable boundaries',
+                    'Study dependency injection, interfaces, explicit inputs, and specific exception handling.',
+                    'Refactor one script so collaborators and input values are passed in instead of read from hidden globals.',
+                    'You are ready when you can test the code by giving it controlled inputs and explaining one failure path.',
+                ),
+            ],
+            'laravel-foundations' => [
+                $this->studyPhase(
+                    'basics',
+                    'Follow one request through Laravel',
+                    'Learn the route, controller, response, config, and migration vocabulary before adding many features.',
+                    'Pick one GET route and trace exactly which file handles the URL and what response goes back to the browser.',
+                    'You are ready when route:list, routes/web.php, controller actions, and migrations feel connected.',
+                ),
+                $this->studyPhase(
+                    'intermediate',
+                    'Make forms trustworthy',
+                    'Study server-side validation, old input, Eloquent relationships, route model binding, and policies.',
+                    'Build one small create form and intentionally fail validation so you can see the redirect and errors.',
+                    'You are ready when you can explain why the server validates even when the frontend looks correct.',
+                ),
+                $this->studyPhase(
+                    'advanced',
+                    'Prove behavior with tests',
+                    'Learn the four proofs for a feature: guest behavior, valid input, invalid input, and unauthorized input.',
+                    'Write one focused feature test before expanding the UI further.',
+                    'You are ready when a failing test tells you exactly which part of the Laravel flow broke.',
+                ),
+            ],
+            'laravel-full-stack' => [
+                $this->studyPhase(
+                    'basics',
+                    'Connect Laravel to React with Inertia',
+                    'Study props, named routes, redirects, and the trust boundary between server data and browser data.',
+                    'Trace one button from React click to Laravel route to controller response.',
+                    'You are ready when you can describe what data becomes an Inertia prop and what must stay server-side.',
+                ),
+                $this->studyPhase(
+                    'intermediate',
+                    'Shape real application screens',
+                    'Learn pagination, resource controllers, local UI state, filters, validation feedback, and authorization.',
+                    'Create or inspect one index screen that filters server-side and preserves the selected filter.',
+                    'You are ready when you know which state belongs in React and which state belongs in the database.',
+                ),
+                $this->studyPhase(
+                    'advanced',
+                    'Ship a feature with confidence',
+                    'Study queue fakes, redirect-after-POST, browser network debugging, policies, and release proof notes.',
+                    'For one feature, write the test command and manual browser flow that prove it is safe to ship.',
+                    'You are ready when you can debug an Inertia issue from the network response, not by guessing.',
+                ),
+            ],
+            'modern-laravel' => [
+                $this->studyPhase(
+                    'basics',
+                    'Understand production-sensitive commands',
+                    'Study config cache, route cache, migrations, workers, and why deploy order matters.',
+                    'Write a simple deploy order for code, dependencies, assets, migrations, caches, workers, and health checks.',
+                    'You are ready when you can explain what must restart or refresh after configuration or schema changes.',
+                ),
+                $this->studyPhase(
+                    'intermediate',
+                    'Protect concurrent work',
+                    'Learn transactions, cache locks, scheduled command overlap protection, and safe multi-write flows.',
+                    'Wrap a two-write example in a transaction and decide what should happen if the second write fails.',
+                    'You are ready when you can name the race condition or consistency bug each tool prevents.',
+                ),
+                $this->studyPhase(
+                    'advanced',
+                    'Operate and recover',
+                    'Study failed jobs, health endpoints, rollback signals, queues, logs, and post-deploy verification.',
+                    'Draft an operations checklist that includes one log check, one queue check, and one HTTP proof.',
+                    'You are ready when you can say what signal would make you pause, rollback, or fix forward.',
+                ),
+            ],
+            default => [],
+        };
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function studyPhase(string $id, string $title, string $lesson, string $practice, string $readiness): array
+    {
+        return [
+            'id' => $id,
+            'title' => $title,
+            'lesson' => $lesson,
+            'practice' => $practice,
+            'readiness' => $readiness,
         ];
     }
 

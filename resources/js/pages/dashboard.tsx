@@ -54,6 +54,14 @@ type LearningCheckpoint = {
     is_complete: boolean;
 };
 
+type StudyPhase = {
+    id: string;
+    title: string;
+    lesson: string;
+    practice: string;
+    readiness: string;
+};
+
 type LearningPath = {
     id: number;
     title: string;
@@ -67,6 +75,7 @@ type LearningPath = {
     checkpoints_count: number;
     completed_checkpoints_count: number;
     created_at: string;
+    study_plan: StudyPhase[];
     checkpoints: LearningCheckpoint[];
     logs: LearningLog[];
 };
@@ -90,6 +99,7 @@ type QuestCatalogItem = {
     mcq_count: number;
     task_count: number;
     phase_counts: Record<string, number>;
+    study_plan: StudyPhase[];
 };
 
 type DashboardProps = {
@@ -115,6 +125,30 @@ const questPhases = [
         id: 'advanced',
         title: 'Advanced',
         description: 'Practice production habits, testing, and design judgment.',
+    },
+];
+
+const defaultStudyPlan: StudyPhase[] = [
+    {
+        id: 'basics',
+        title: 'Build the vocabulary',
+        lesson: 'Start by naming the main concepts, files, commands, and request flow before attempting the checkpoints.',
+        practice: 'Trace one small example by hand and write the steps in your own words.',
+        readiness: 'You are ready when the core terms feel familiar enough to explain without copying documentation.',
+    },
+    {
+        id: 'intermediate',
+        title: 'Connect the pieces',
+        lesson: 'Focus on how the concepts work together across UI, routing, validation, persistence, and feedback.',
+        practice: 'Build or inspect one working feature and identify each boundary it crosses.',
+        readiness: 'You are ready when you can predict which file should change for a small behavior update.',
+    },
+    {
+        id: 'advanced',
+        title: 'Prove and harden',
+        lesson: 'Study tests, authorization, failure paths, deploy checks, and operational signals before calling work complete.',
+        practice: 'Write one automated proof and one manual verification path for the feature.',
+        readiness: 'You are ready when you can explain how the feature fails safely and how you would detect a regression.',
     },
 ];
 
@@ -211,6 +245,7 @@ export default function Dashboard({ paths, stats, questCatalog }: DashboardProps
                                                     </Badge>
                                                 ))}
                                             </div>
+                                            <StudyPlanPreview phases={selectedQuest.study_plan} />
                                             <a
                                                 className="text-muted-foreground hover:text-foreground mt-3 inline-flex text-xs underline underline-offset-4"
                                                 href={selectedQuest.source_url}
@@ -357,9 +392,11 @@ function LearningPathCard({ path }: { path: LearningPath }) {
 
     const progress = Math.min(100, Math.round((path.logged_minutes / Math.max(path.weekly_minutes, 1)) * 100));
     const checkpointProgress = path.checkpoints_count ? Math.round((path.completed_checkpoints_count / path.checkpoints_count) * 100) : 0;
+    const studyPlan = path.study_plan.length > 0 ? path.study_plan : defaultStudyPlan;
     const checkpointGroups = questPhases
         .map((phase) => ({
             ...phase,
+            studyPhase: studyPlan.find((studyPhase) => studyPhase.id === phase.id),
             checkpoints: path.checkpoints.filter((checkpoint) => checkpoint.difficulty === phase.id),
         }))
         .filter((phase) => phase.checkpoints.length > 0);
@@ -457,10 +494,12 @@ function LearningPathCard({ path }: { path: LearningPath }) {
                     <div className="mb-3 flex items-center justify-between gap-3">
                         <div>
                             <h3 className="text-sm font-semibold">Checkpoints</h3>
-                            <p className="text-muted-foreground text-sm">Break the path into proof-of-learning milestones.</p>
+                            <p className="text-muted-foreground text-sm">Study the guide first, then prove the concept with MCQs and tasks.</p>
                         </div>
                         <Badge variant="outline">{path.checkpoints_count}</Badge>
                     </div>
+
+                    {studyPlan.length > 0 && <StudyGuide phases={studyPlan} />}
 
                     <form className="grid gap-3 md:grid-cols-[1fr_1fr_auto]" onSubmit={createCheckpoint}>
                         <Field label="Task" error={checkpointForm.errors.title}>
@@ -482,6 +521,7 @@ function LearningPathCard({ path }: { path: LearningPath }) {
                                     key={phase.id}
                                     title={phase.title}
                                     description={phase.description}
+                                    studyPhase={phase.studyPhase}
                                     checkpoints={phase.checkpoints}
                                     pathId={path.id}
                                     onToggle={toggleCheckpoint}
@@ -567,9 +607,71 @@ function LearningPathCard({ path }: { path: LearningPath }) {
     );
 }
 
+function StudyPlanPreview({ phases }: { phases: StudyPhase[] }) {
+    if (phases.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="mt-3 rounded-md border bg-sky-500/5 p-3">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase">
+                <BookOpenCheck className="size-3.5 text-sky-500" />
+                Study before quest
+            </div>
+            <div className="mt-2 grid gap-2">
+                {phases.map((phase) => (
+                    <div key={phase.id} className="text-sm">
+                        <span className="font-medium">{phase.title}</span>
+                        <span className="text-muted-foreground"> - {phase.lesson}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function StudyGuide({ phases }: { phases: StudyPhase[] }) {
+    return (
+        <section className="mb-4 rounded-md border bg-sky-500/5 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <h3 className="flex items-center gap-2 text-sm font-semibold">
+                        <BookOpenCheck className="size-4 text-sky-500" />
+                        Study first
+                    </h3>
+                    <p className="text-muted-foreground mt-1 text-sm">Read these mini-lessons before treating the checkpoints like an exam.</p>
+                </div>
+                <Badge variant="outline">{phases.length} lessons</Badge>
+            </div>
+            <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                {phases.map((phase) => (
+                    <div key={phase.id} className="bg-background/70 rounded-md border p-3">
+                        <div className="flex items-center justify-between gap-2">
+                            <h4 className="text-sm font-semibold">{phase.title}</h4>
+                            <Badge variant="secondary">{phase.id}</Badge>
+                        </div>
+                        <p className="text-muted-foreground mt-2 text-sm">{phase.lesson}</p>
+                        <div className="mt-3 space-y-2 text-xs">
+                            <p>
+                                <span className="font-semibold">Practice: </span>
+                                <span className="text-muted-foreground">{phase.practice}</span>
+                            </p>
+                            <p>
+                                <span className="font-semibold">Ready when: </span>
+                                <span className="text-muted-foreground">{phase.readiness}</span>
+                            </p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </section>
+    );
+}
+
 function CheckpointPhase({
     title,
     description,
+    studyPhase,
     checkpoints,
     pathId,
     onToggle,
@@ -577,6 +679,7 @@ function CheckpointPhase({
 }: {
     title: string;
     description: string;
+    studyPhase?: StudyPhase;
     checkpoints: LearningCheckpoint[];
     pathId: number;
     onToggle: (checkpoint: LearningCheckpoint, isComplete: boolean) => void;
@@ -595,7 +698,7 @@ function CheckpointPhase({
                             {completedCount}/{checkpoints.length}
                         </Badge>
                     </div>
-                    <p className="text-muted-foreground mt-1 text-xs">{description}</p>
+                    <p className="text-muted-foreground mt-1 text-xs">{studyPhase?.readiness ?? description}</p>
                 </div>
                 <div className="min-w-28 text-right">
                     <p className="text-muted-foreground text-xs">{progress}% complete</p>
