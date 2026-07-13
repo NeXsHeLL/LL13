@@ -87,6 +87,9 @@ type QuestCatalogItem = {
     source_label: string;
     source_url: string;
     activity_count: number;
+    mcq_count: number;
+    task_count: number;
+    phase_counts: Record<string, number>;
 };
 
 type DashboardProps = {
@@ -96,6 +99,24 @@ type DashboardProps = {
 };
 
 const statuses = ['planned', 'active', 'paused', 'completed'] as const;
+
+const questPhases = [
+    {
+        id: 'basics',
+        title: 'Basics',
+        description: 'Start with the core vocabulary and smallest useful actions.',
+    },
+    {
+        id: 'intermediate',
+        title: 'Intermediate',
+        description: 'Connect the concepts into real Laravel feature work.',
+    },
+    {
+        id: 'advanced',
+        title: 'Advanced',
+        description: 'Practice production habits, testing, and design judgment.',
+    },
+];
 
 export default function Dashboard({ paths, stats, questCatalog }: DashboardProps) {
     const initialQuest = questCatalog[0]?.id ?? 'laravel-full-stack';
@@ -179,6 +200,17 @@ export default function Dashboard({ paths, stats, questCatalog }: DashboardProps
                                                 <Badge variant="secondary">{selectedQuest.activity_count} activities</Badge>
                                             </div>
                                             <p className="text-muted-foreground mt-2 text-sm">{selectedQuest.description}</p>
+                                            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                                <Metric label="MCQs" value={selectedQuest.mcq_count.toString()} />
+                                                <Metric label="Tasks" value={selectedQuest.task_count.toString()} />
+                                            </div>
+                                            <div className="mt-3 flex flex-wrap gap-2">
+                                                {questPhases.map((phase) => (
+                                                    <Badge key={phase.id} variant="outline">
+                                                        {phase.title}: {selectedQuest.phase_counts[phase.id] ?? 0}
+                                                    </Badge>
+                                                ))}
+                                            </div>
                                             <a
                                                 className="text-muted-foreground hover:text-foreground mt-3 inline-flex text-xs underline underline-offset-4"
                                                 href={selectedQuest.source_url}
@@ -325,6 +357,13 @@ function LearningPathCard({ path }: { path: LearningPath }) {
 
     const progress = Math.min(100, Math.round((path.logged_minutes / Math.max(path.weekly_minutes, 1)) * 100));
     const checkpointProgress = path.checkpoints_count ? Math.round((path.completed_checkpoints_count / path.checkpoints_count) * 100) : 0;
+    const checkpointGroups = questPhases
+        .map((phase) => ({
+            ...phase,
+            checkpoints: path.checkpoints.filter((checkpoint) => checkpoint.difficulty === phase.id),
+        }))
+        .filter((phase) => phase.checkpoints.length > 0);
+    const uncategorizedCheckpoints = path.checkpoints.filter((checkpoint) => !questPhases.some((phase) => phase.id === checkpoint.difficulty));
 
     function updateStatus(value: string) {
         statusForm.setData('status', value);
@@ -437,16 +476,28 @@ function LearningPathCard({ path }: { path: LearningPath }) {
                     </form>
 
                     {path.checkpoints.length > 0 && (
-                        <div className="mt-4 grid gap-2">
-                            {path.checkpoints.map((checkpoint) => (
-                                <CheckpointActivity
-                                    key={checkpoint.id}
-                                    checkpoint={checkpoint}
+                        <div className="mt-4 grid gap-3">
+                            {checkpointGroups.map((phase) => (
+                                <CheckpointPhase
+                                    key={phase.id}
+                                    title={phase.title}
+                                    description={phase.description}
+                                    checkpoints={phase.checkpoints}
                                     pathId={path.id}
                                     onToggle={toggleCheckpoint}
                                     onDelete={deleteCheckpoint}
                                 />
                             ))}
+                            {uncategorizedCheckpoints.length > 0 && (
+                                <CheckpointPhase
+                                    title="Custom"
+                                    description="Ad hoc checkpoints you added to this path."
+                                    checkpoints={uncategorizedCheckpoints}
+                                    pathId={path.id}
+                                    onToggle={toggleCheckpoint}
+                                    onDelete={deleteCheckpoint}
+                                />
+                            )}
                         </div>
                     )}
                 </div>
@@ -513,6 +564,52 @@ function LearningPathCard({ path }: { path: LearningPath }) {
                 )}
             </CardContent>
         </Card>
+    );
+}
+
+function CheckpointPhase({
+    title,
+    description,
+    checkpoints,
+    pathId,
+    onToggle,
+    onDelete,
+}: {
+    title: string;
+    description: string;
+    checkpoints: LearningCheckpoint[];
+    pathId: number;
+    onToggle: (checkpoint: LearningCheckpoint, isComplete: boolean) => void;
+    onDelete: (checkpoint: LearningCheckpoint) => void;
+}) {
+    const completedCount = checkpoints.filter((checkpoint) => checkpoint.is_complete).length;
+    const progress = Math.round((completedCount / checkpoints.length) * 100);
+
+    return (
+        <section className="bg-background/40 rounded-md border">
+            <div className="flex flex-wrap items-start justify-between gap-3 border-b p-3">
+                <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="text-sm font-semibold">{title}</h4>
+                        <Badge variant="outline">
+                            {completedCount}/{checkpoints.length}
+                        </Badge>
+                    </div>
+                    <p className="text-muted-foreground mt-1 text-xs">{description}</p>
+                </div>
+                <div className="min-w-28 text-right">
+                    <p className="text-muted-foreground text-xs">{progress}% complete</p>
+                    <div className="bg-muted mt-2 h-1.5 overflow-hidden rounded-full">
+                        <div className="h-full rounded-full bg-emerald-600 transition-all" style={{ width: `${progress}%` }} />
+                    </div>
+                </div>
+            </div>
+            <div className="grid gap-2 p-3">
+                {checkpoints.map((checkpoint) => (
+                    <CheckpointActivity key={checkpoint.id} checkpoint={checkpoint} pathId={pathId} onToggle={onToggle} onDelete={onDelete} />
+                ))}
+            </div>
+        </section>
     );
 }
 

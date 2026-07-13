@@ -12,15 +12,25 @@ class LearningQuestFactory
     public function catalog(): array
     {
         return collect($this->blueprints())
-            ->map(fn (array $blueprint, string $id): array => [
-                'id' => $id,
-                'title' => $blueprint['path']['title'],
-                'level' => $blueprint['level'],
-                'description' => $blueprint['description'],
-                'source_label' => $blueprint['source_label'],
-                'source_url' => $blueprint['source_url'],
-                'activity_count' => count($blueprint['checkpoints']),
-            ])
+            ->map(function (array $blueprint, string $id): array {
+                $checkpoints = collect($this->checkpointsFor($id, $blueprint));
+
+                return [
+                    'id' => $id,
+                    'title' => $blueprint['path']['title'],
+                    'level' => $blueprint['level'],
+                    'description' => $blueprint['description'],
+                    'source_label' => $blueprint['source_label'],
+                    'source_url' => $blueprint['source_url'],
+                    'activity_count' => $checkpoints->count(),
+                    'mcq_count' => $checkpoints->where('activity_type', 'mcq')->count(),
+                    'task_count' => $checkpoints->where('activity_type', 'task')->count(),
+                    'phase_counts' => $checkpoints
+                        ->countBy('difficulty')
+                        ->only(['basics', 'intermediate', 'advanced'])
+                        ->all(),
+                ];
+            })
             ->values()
             ->all();
     }
@@ -46,7 +56,7 @@ class LearningQuestFactory
 
         return [
             'path' => $blueprint['path'],
-            'checkpoints' => $blueprint['checkpoints'],
+            'checkpoints' => $this->checkpointsFor($quest, $blueprint),
         ];
     }
 
@@ -327,6 +337,262 @@ class LearningQuestFactory
                     ], 'A', 'Secrets should stay out of source control and be accessed through configuration backed by environment values.'),
                     $this->task('Advanced', 'Audit one config boundary', 'Find one environment-driven setting, verify it is documented in .env.example, and confirm no secret value is committed.'),
                 ],
+            ],
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function checkpointsFor(string $quest, array $blueprint): array
+    {
+        return [
+            ...$blueprint['checkpoints'],
+            ...($this->practiceBatch()[$quest] ?? []),
+        ];
+    }
+
+    /**
+     * @return array<string, list<array<string, mixed>>>
+     */
+    private function practiceBatch(): array
+    {
+        return [
+            'php-foundations' => [
+                $this->mcq('Basics', 'Which PHP superglobal contains query string values?', [
+                    'A' => '$_GET',
+                    'B' => '$_POST',
+                    'C' => '$_SERVER',
+                    'D' => '$_SESSION',
+                ], 'A', '$_GET contains values sent in the URL query string, such as ?topic=routes.'),
+                $this->mcq('Basics', 'What does foreach help you do?', [
+                    'A' => 'Loop over arrays and iterable values',
+                    'B' => 'Create a database table',
+                    'C' => 'Start a queue worker',
+                    'D' => 'Import CSS',
+                ], 'A', 'foreach is the common PHP loop for walking through each item in an array or iterable.'),
+                $this->mcq('Basics', 'What does isset check?', [
+                    'A' => 'Whether a variable or key exists and is not null',
+                    'B' => 'Whether a route has middleware',
+                    'C' => 'Whether a migration was rolled back',
+                    'D' => 'Whether a class has CSS',
+                ], 'A', 'isset is useful before reading optional values because it checks that the value exists and is not null.'),
+                $this->task('Basics', 'Build a request data sandbox', 'Create a tiny PHP page that reads one query string value, validates it exists, and prints a safe fallback when it does not.'),
+                $this->mcq('Intermediate', 'Why prefer small functions?', [
+                    'A' => 'They make behavior easier to name, test, and reuse',
+                    'B' => 'They remove the need for variables',
+                    'C' => 'They automatically create database rows',
+                    'D' => 'They compile JavaScript faster',
+                ], 'A', 'Small functions create clear boundaries and make it easier to reason about one behavior at a time.'),
+                $this->mcq('Intermediate', 'What does a namespace prevent?', [
+                    'A' => 'Class name collisions across code areas',
+                    'B' => 'All runtime exceptions',
+                    'C' => 'Missing database indexes',
+                    'D' => 'HTML escaping issues',
+                ], 'A', 'Namespaces let different parts of an app use clear class names without colliding globally.'),
+                $this->mcq('Intermediate', 'What is Composer mainly used for?', [
+                    'A' => 'Managing PHP dependencies and autoloading',
+                    'B' => 'Managing browser cookies',
+                    'C' => 'Writing SQL indexes automatically',
+                    'D' => 'Serving Vite assets',
+                ], 'A', 'Composer installs PHP packages and generates the autoloader Laravel relies on.'),
+                $this->task('Intermediate', 'Create a tiny value object', 'Make a small class that represents a study session with topic and minutes, then add one method that formats the session.'),
+                $this->mcq('Advanced', 'Why catch a specific exception type?', [
+                    'A' => 'To handle one known failure without hiding unrelated bugs',
+                    'B' => 'To disable PHP errors globally',
+                    'C' => 'To skip validation forever',
+                    'D' => 'To make arrays immutable',
+                ], 'A', 'Specific catches keep error handling intentional and avoid swallowing failures you did not expect.'),
+                $this->mcq('Advanced', 'What does an interface describe?', [
+                    'A' => 'A contract a class promises to implement',
+                    'B' => 'A database backup',
+                    'C' => 'A browser route',
+                    'D' => 'A Tailwind utility',
+                ], 'A', 'Interfaces describe required methods so code can depend on a contract instead of a concrete class.'),
+                $this->mcq('Advanced', 'Why avoid hidden global state?', [
+                    'A' => 'It makes behavior harder to test and predict',
+                    'B' => 'It prevents string concatenation',
+                    'C' => 'It blocks all class loading',
+                    'D' => 'It removes PHP arrays',
+                ], 'A', 'Hidden global state creates invisible dependencies, which makes debugging and tests less reliable.'),
+                $this->task('Advanced', 'Refactor toward explicit inputs', 'Find a function that reads global state, pass the needed value as an argument, and note how the function became easier to test.'),
+            ],
+            'laravel-foundations' => [
+                $this->mcq('Basics', 'What does php artisan route:list show?', [
+                    'A' => 'Registered routes, methods, names, and actions',
+                    'B' => 'Only database rows',
+                    'C' => 'Only frontend dependencies',
+                    'D' => 'Only queued jobs',
+                ], 'A', 'route:list is a fast way to inspect the routes Laravel has registered.'),
+                $this->mcq('Basics', 'What does a controller action usually return?', [
+                    'A' => 'A response, redirect, view, or Inertia render',
+                    'B' => 'Only a migration file',
+                    'C' => 'Only a Composer package',
+                    'D' => 'Only a shell prompt',
+                ], 'A', 'Controller actions handle a request and return a response Laravel can send to the browser.'),
+                $this->mcq('Basics', 'What does the config helper read?', [
+                    'A' => 'Values from Laravel configuration files',
+                    'B' => 'Only request body values',
+                    'C' => 'Only compiled CSS',
+                    'D' => 'Only browser local storage',
+                ], 'A', 'config() reads values from files under config, which can be backed by environment variables.'),
+                $this->task('Basics', 'Trace one request by hand', 'Pick one route and write down the route, controller method, validation, model call, and response in order.'),
+                $this->mcq('Intermediate', 'Why use a Form Request?', [
+                    'A' => 'To move validation and authorization for one request into a dedicated class',
+                    'B' => 'To replace all controllers',
+                    'C' => 'To skip database constraints',
+                    'D' => 'To remove route names',
+                ], 'A', 'Form Requests keep controller actions smaller and make request rules easier to reuse and test.'),
+                $this->mcq('Intermediate', 'What does old input support after validation fails?', [
+                    'A' => 'Repopulating form fields',
+                    'B' => 'Compiling assets',
+                    'C' => 'Creating queue tables',
+                    'D' => 'Changing the app key',
+                ], 'A', 'Laravel flashes old input so forms can show what the user submitted after a validation redirect.'),
+                $this->mcq('Intermediate', 'What does a policy answer?', [
+                    'A' => 'Whether a user may perform an action on a model',
+                    'B' => 'Which CSS file is largest',
+                    'C' => 'Which package manager is installed',
+                    'D' => 'Whether Vite is running',
+                ], 'A', 'Policies put model-specific authorization decisions in one clear class.'),
+                $this->task('Intermediate', 'Add a Form Request', 'Extract validation for one create or update action into a Form Request and confirm the same validation errors still appear.'),
+                $this->mcq('Advanced', 'Why test a validation failure?', [
+                    'A' => 'It proves bad input is rejected and the user gets useful feedback',
+                    'B' => 'It proves CSS is minified',
+                    'C' => 'It proves every route is public',
+                    'D' => 'It proves Composer can update',
+                ], 'A', 'Validation failure tests protect the server boundary and the user-facing error path.'),
+                $this->mcq('Advanced', 'What does RefreshDatabase give feature tests?', [
+                    'A' => 'A clean database state around tests',
+                    'B' => 'A faster GPU',
+                    'C' => 'Automatic frontend screenshots',
+                    'D' => 'A public server URL',
+                ], 'A', 'RefreshDatabase keeps tests isolated by managing database state between test runs.'),
+                $this->mcq('Advanced', 'Why keep authorization checks server-side?', [
+                    'A' => 'Frontend controls can be bypassed',
+                    'B' => 'Policies only work in CSS',
+                    'C' => 'Databases cannot store users',
+                    'D' => 'Routes cannot redirect',
+                ], 'A', 'Buttons and links improve UX, but the server must enforce authorization.'),
+                $this->task('Advanced', 'Write the four-route proof', 'For one feature, test guest access, valid create, invalid create, and unauthorized update or delete.'),
+            ],
+            'laravel-full-stack' => [
+                $this->mcq('Basics', 'What does an Inertia controller pass to React?', [
+                    'A' => 'Page props',
+                    'B' => 'Raw database credentials',
+                    'C' => 'Compiled PHP bytecode',
+                    'D' => 'Only CSS variables',
+                ], 'A', 'Inertia pages receive props from Laravel controllers, similar to server-rendered view data.'),
+                $this->mcq('Basics', 'What should never be sent as an Inertia prop?', [
+                    'A' => 'Secrets or private credentials',
+                    'B' => 'A page title',
+                    'C' => 'A validation error',
+                    'D' => 'A count of public records',
+                ], 'A', 'Inertia props become available to the browser, so secrets must stay server-side.'),
+                $this->mcq('Basics', 'What does Ziggy help React use?', [
+                    'A' => 'Laravel route names',
+                    'B' => 'Database migrations',
+                    'C' => 'Queue retry counts',
+                    'D' => 'PHP namespaces',
+                ], 'A', 'Ziggy exposes Laravel route names so frontend code can generate URLs consistently.'),
+                $this->task('Basics', 'Map a full-stack request', 'Choose one button in the app and trace the React event, route helper, controller action, model write, and redirect.'),
+                $this->mcq('Intermediate', 'Why use pagination for index pages?', [
+                    'A' => 'To avoid loading too many rows at once',
+                    'B' => 'To disable authorization',
+                    'C' => 'To skip validation',
+                    'D' => 'To remove all filters',
+                ], 'A', 'Pagination keeps index pages predictable as data grows.'),
+                $this->mcq('Intermediate', 'What is a resource controller good for?', [
+                    'A' => 'A conventional CRUD action set',
+                    'B' => 'Running npm commands',
+                    'C' => 'Encrypting every database row automatically',
+                    'D' => 'Replacing all tests',
+                ], 'A', 'Resource controllers provide conventional methods like index, store, update, and destroy.'),
+                $this->mcq('Intermediate', 'When should React state be local?', [
+                    'A' => 'When it only controls one component interaction',
+                    'B' => 'When it stores server secrets',
+                    'C' => 'When it replaces database persistence',
+                    'D' => 'When it bypasses validation',
+                ], 'A', 'Local UI state is appropriate for temporary component behavior; durable data belongs on the server.'),
+                $this->task('Intermediate', 'Create one filterable list', 'Add a server-backed filter to an index page and keep the selected filter visible after navigation.'),
+                $this->mcq('Advanced', 'Why fake queues in tests?', [
+                    'A' => 'To assert jobs were dispatched without running slow side effects',
+                    'B' => 'To disable all assertions',
+                    'C' => 'To make migrations optional',
+                    'D' => 'To expose secrets to React',
+                ], 'A', 'Queue fakes let tests prove dispatch behavior while avoiding slow or external work.'),
+                $this->mcq('Advanced', 'What should happen after a successful POST in an Inertia app?', [
+                    'A' => 'Redirect to a GET route',
+                    'B' => 'Render a blank PHP file',
+                    'C' => 'Leave duplicate form submissions unhandled',
+                    'D' => 'Commit the SQLite database',
+                ], 'A', 'Redirect-after-POST keeps browser refreshes and navigation predictable.'),
+                $this->mcq('Advanced', 'Why inspect network requests while debugging Inertia?', [
+                    'A' => 'To see props, validation errors, redirects, and status codes',
+                    'B' => 'To edit migrations in the browser',
+                    'C' => 'To replace feature tests',
+                    'D' => 'To bypass policies',
+                ], 'A', 'The network tab shows the real request and response path that drives Inertia updates.'),
+                $this->task('Advanced', 'Add one end-to-end proof note', 'After building a feature, write the exact manual browser flow and automated test command that prove it works.'),
+            ],
+            'modern-laravel' => [
+                $this->mcq('Basics', 'What does config:cache change?', [
+                    'A' => 'It compiles configuration into a cached file',
+                    'B' => 'It creates database indexes',
+                    'C' => 'It restarts Vite',
+                    'D' => 'It deletes queues',
+                ], 'A', 'config:cache makes config reads faster but means environment changes need a cache refresh.'),
+                $this->mcq('Basics', 'What does route:cache require?', [
+                    'A' => 'Routes that can be serialized',
+                    'B' => 'Only guest routes',
+                    'C' => 'No controllers at all',
+                    'D' => 'A public database',
+                ], 'A', 'Route caching stores route definitions, so routes must be compatible with serialization.'),
+                $this->mcq('Basics', 'Why run migrations before workers handle new jobs?', [
+                    'A' => 'Jobs may depend on new tables or columns',
+                    'B' => 'Workers compile Tailwind',
+                    'C' => 'Migrations send emails',
+                    'D' => 'Queues replace databases',
+                ], 'A', 'Workers can execute code that expects the latest schema, so deploy order matters.'),
+                $this->task('Basics', 'Write a deploy order note', 'Draft the order for code sync, Composer install, npm build, migrate, cache, worker restart, and health check.'),
+                $this->mcq('Intermediate', 'What does withoutOverlapping protect in scheduled tasks?', [
+                    'A' => 'The same scheduled command running twice at once',
+                    'B' => 'All controller validation',
+                    'C' => 'Every database deadlock',
+                    'D' => 'Frontend route changes',
+                ], 'A', 'withoutOverlapping uses a lock so a slow scheduled run does not overlap the next run.'),
+                $this->mcq('Intermediate', 'Why use cache locks?', [
+                    'A' => 'To coordinate exclusive work across processes',
+                    'B' => 'To style badges',
+                    'C' => 'To replace all transactions',
+                    'D' => 'To hide route names',
+                ], 'A', 'Cache locks help prevent concurrent workers or requests from doing the same sensitive work twice.'),
+                $this->mcq('Intermediate', 'What does a transaction protect?', [
+                    'A' => 'A group of database writes that should succeed or fail together',
+                    'B' => 'A CSS animation',
+                    'C' => 'A Vite hot reload',
+                    'D' => 'A route list command',
+                ], 'A', 'Transactions keep related database changes consistent when a later step fails.'),
+                $this->task('Intermediate', 'Wrap a multi-write flow', 'Find or create a flow with two related writes, wrap it in a transaction, and test the failure behavior.'),
+                $this->mcq('Advanced', 'Why monitor failed jobs?', [
+                    'A' => 'They reveal background work that users may not see fail immediately',
+                    'B' => 'They replace logs',
+                    'C' => 'They prove CSS loaded',
+                    'D' => 'They delete old sessions',
+                ], 'A', 'Failed jobs can silently break important follow-up work, so they need inspection and retry strategy.'),
+                $this->mcq('Advanced', 'What should a health endpoint avoid doing?', [
+                    'A' => 'Slow destructive or side-effect-heavy work',
+                    'B' => 'Returning a simple OK signal',
+                    'C' => 'Checking lightweight dependencies',
+                    'D' => 'Being easy to curl',
+                ], 'A', 'Health checks should be fast and safe because they may run frequently.'),
+                $this->mcq('Advanced', 'Why document rollback signals?', [
+                    'A' => 'So the team knows when a deploy is unsafe to keep live',
+                    'B' => 'So tests can be deleted',
+                    'C' => 'So secrets can be committed',
+                    'D' => 'So migrations become optional',
+                ], 'A', 'Rollback signals turn vague concern into concrete thresholds for reverting or fixing forward.'),
+                $this->task('Advanced', 'Create an operations checklist', 'Write a short checklist for logs, queues, migrations, assets, config cache, and one HTTP health proof.'),
             ],
         ];
     }

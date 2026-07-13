@@ -125,8 +125,24 @@ class LearningPathTest extends TestCase
     {
         $catalog = app(LearningQuestFactory::class)->catalog();
 
-        $this->assertGreaterThanOrEqual(50, collect($catalog)->sum('activity_count'));
-        $this->assertTrue(collect($catalog)->every(fn (array $quest): bool => $quest['activity_count'] >= 10));
+        $this->assertGreaterThanOrEqual(100, collect($catalog)->sum('activity_count'));
+        $this->assertTrue(collect($catalog)->every(fn (array $quest): bool => $quest['activity_count'] >= 25));
+        $this->assertTrue(collect($catalog)->every(fn (array $quest): bool => $quest['mcq_count'] >= 15));
+        $this->assertTrue(collect($catalog)->every(fn (array $quest): bool => $quest['task_count'] >= 8));
+    }
+
+    public function test_guided_learning_catalog_exposes_phase_counts(): void
+    {
+        $catalog = app(LearningQuestFactory::class)->catalog();
+
+        foreach ($catalog as $quest) {
+            $this->assertArrayHasKey('phase_counts', $quest);
+
+            foreach (['basics', 'intermediate', 'advanced'] as $phase) {
+                $this->assertArrayHasKey($phase, $quest['phase_counts']);
+                $this->assertGreaterThan(0, $quest['phase_counts'][$phase]);
+            }
+        }
     }
 
     public function test_every_guided_mcq_includes_an_explanation(): void
