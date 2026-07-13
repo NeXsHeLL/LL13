@@ -6,6 +6,7 @@ import { defineConfig } from 'vite';
 
 const devServerOrigin = process.env.VITE_DEV_SERVER_ORIGIN;
 const devServerUrl = devServerOrigin ? new URL(devServerOrigin) : null;
+const devClientOrigin = process.env.VITE_DEV_CLIENT_ORIGIN;
 
 export default defineConfig({
     plugins: [
@@ -26,6 +27,7 @@ export default defineConfig({
               port: Number(process.env.VITE_DEV_SERVER_PORT ?? devServerUrl.port),
               strictPort: true,
               origin: devServerUrl.origin,
+              cors: devClientOrigin ? { origin: devClientOrigin } : undefined,
               hmr: {
                   host: devServerUrl.hostname,
                   clientPort: Number(devServerUrl.port),
