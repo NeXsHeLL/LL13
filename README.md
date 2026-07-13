@@ -6,7 +6,7 @@ The project is designed to be useful as both a learning tool and a readable Lara
 
 ## Features
 
-- Guided quest catalog from beginner PHP to advanced Laravel topics.
+- Guided quest catalog with 50+ first-batch activities from beginner PHP to advanced Laravel topics.
 - Multiple-choice checkpoints with server-side grading.
 - Hands-on tasks that encourage building and explaining real Laravel features.
 - Custom learning paths with target dates, confidence tracking, and weekly study minutes.
@@ -22,6 +22,8 @@ The built-in quest catalog includes:
 - Laravel Foundations
 - Laravel 13 Quest: Basics to Advanced
 - Modern Laravel Deep Dive
+
+The first batch includes 56 total activities across the catalog. Each track combines multiple-choice checkpoints with hands-on tasks so learners have both recall practice and implementation work.
 
 The track structure is inspired by public topic and category organization from Laracasts Discover, but the activities and quiz content in this repository are original.
 

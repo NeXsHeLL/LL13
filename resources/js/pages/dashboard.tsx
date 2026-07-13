@@ -11,6 +11,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import {
     BookOpenCheck,
+    Brain,
     CalendarClock,
     CheckCircle2,
     Clock3,
@@ -528,6 +529,8 @@ function CheckpointActivity({
 }) {
     const isAnswered = checkpoint.activity_type === 'mcq' && checkpoint.user_answer !== null;
     const isWrongAnswer = isAnswered && !checkpoint.is_complete;
+    const supportingText = checkpoint.prompt && checkpoint.prompt !== checkpoint.title ? checkpoint.prompt : checkpoint.notes;
+    const shouldShowExplanation = checkpoint.activity_type === 'task' || checkpoint.is_complete;
 
     function answerMcq(option: string) {
         router.put(
@@ -549,12 +552,20 @@ function CheckpointActivity({
                         aria-label={`Mark ${checkpoint.title} complete`}
                     />
                 ) : (
-                    <div className="flex size-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold">?</div>
+                    <div className="flex size-5 shrink-0 items-center justify-center rounded-full border text-emerald-500">
+                        <Brain className="size-3" />
+                    </div>
                 )}
 
                 <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                        <p className={checkpoint.is_complete ? 'text-sm font-medium line-through opacity-60' : 'text-sm font-medium'}>
+                        <p
+                            className={
+                                checkpoint.activity_type === 'task' && checkpoint.is_complete
+                                    ? 'text-sm font-medium line-through opacity-60'
+                                    : 'text-sm font-medium'
+                            }
+                        >
                             {checkpoint.title}
                         </p>
                         <Badge variant={checkpoint.activity_type === 'mcq' ? 'default' : 'secondary'}>{checkpoint.activity_type}</Badge>
@@ -563,9 +574,7 @@ function CheckpointActivity({
                         {isWrongAnswer && <Badge variant="destructive">try again</Badge>}
                     </div>
 
-                    {(checkpoint.prompt || checkpoint.notes) && (
-                        <p className="text-muted-foreground mt-2 text-sm">{checkpoint.prompt ?? checkpoint.notes}</p>
-                    )}
+                    {supportingText && <p className="text-muted-foreground mt-2 text-sm">{supportingText}</p>}
 
                     {checkpoint.activity_type === 'mcq' && checkpoint.options && (
                         <div className="mt-3 grid gap-2">
@@ -595,8 +604,20 @@ function CheckpointActivity({
                         </div>
                     )}
 
-                    {checkpoint.explanation && (isAnswered || checkpoint.activity_type === 'task') && (
-                        <p className="bg-background/70 text-muted-foreground mt-3 rounded-md border p-3 text-sm">{checkpoint.explanation}</p>
+                    {isWrongAnswer && (
+                        <p className="text-muted-foreground mt-3 rounded-md border border-red-500/30 bg-red-500/5 p-3 text-sm">
+                            Not quite. Try another answer, then review the explanation once you get it right.
+                        </p>
+                    )}
+
+                    {checkpoint.explanation && shouldShowExplanation && (
+                        <div className="bg-background/70 text-muted-foreground mt-3 rounded-md border p-3 text-sm">
+                            <div className="text-foreground mb-1 flex items-center gap-2 text-xs font-semibold uppercase">
+                                <CheckCircle2 className="size-3.5 text-emerald-500" />
+                                {checkpoint.activity_type === 'mcq' ? 'Why this answer is correct' : 'Completion check'}
+                            </div>
+                            <p>{checkpoint.explanation}</p>
+                        </div>
                     )}
                 </div>
 

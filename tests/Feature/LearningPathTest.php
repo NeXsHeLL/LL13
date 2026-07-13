@@ -121,6 +121,30 @@ class LearningPathTest extends TestCase
         );
     }
 
+    public function test_guided_learning_catalog_contains_the_first_batch_activity_depth(): void
+    {
+        $catalog = app(LearningQuestFactory::class)->catalog();
+
+        $this->assertGreaterThanOrEqual(50, collect($catalog)->sum('activity_count'));
+        $this->assertTrue(collect($catalog)->every(fn (array $quest): bool => $quest['activity_count'] >= 10));
+    }
+
+    public function test_every_guided_mcq_includes_an_explanation(): void
+    {
+        $learningQuestFactory = app(LearningQuestFactory::class);
+
+        foreach ($learningQuestFactory->ids() as $questId) {
+            $mcqs = collect($learningQuestFactory->get($questId)['checkpoints'])
+                ->where('activity_type', 'mcq');
+
+            $this->assertGreaterThan(0, $mcqs->count());
+            $this->assertTrue(
+                $mcqs->every(fn (array $checkpoint): bool => filled($checkpoint['explanation'] ?? null)),
+                "Quest [{$questId}] has an MCQ without an explanation.",
+            );
+        }
+    }
+
     public function test_users_can_generate_curated_learning_quests(): void
     {
         $user = User::factory()->create();
