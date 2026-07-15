@@ -1,36 +1,63 @@
 # LL13: Learn Laravel 13
 
-LL13 is a Laravel 13 learning app for building real framework fluency through guided learning paths, multiple-choice checkpoints, hands-on tasks, study logs, and progress tracking.
+![LL13 social preview](docs/assets/ll13-social-preview.png)
 
-The project is designed to be useful as both a learning tool and a readable Laravel codebase. It uses Laravel, Inertia, React, TypeScript, Tailwind CSS, SQLite by default, and PHPUnit feature tests.
+LL13 is an open-source Laravel 13 learning app built to help developers learn by studying, answering, building, and reflecting.
 
-## Features
+The app combines guided study plans, multiple-choice checkpoints, hands-on tasks, learning logs, confidence tracking, and progress dashboards. It is also meant to be a readable Laravel codebase for people who want to learn how a modern Laravel, Inertia, React, and TypeScript application fits together.
 
-- Guided quest catalog with 50+ first-batch activities from beginner PHP to advanced Laravel topics.
+## Why This Exists
+
+Tutorials are useful, but framework fluency comes from repeating the full loop:
+
+1. Study the concept.
+2. Answer a focused question.
+3. Build a small task.
+4. Explain what changed.
+5. Track progress over time.
+
+LL13 turns that loop into a small product you can run locally, inspect, extend, and learn from.
+
+## Current Features
+
+- Guided quest catalog with 104 first-batch activities.
+- Four built-in learning tracks from PHP foundations to modern Laravel operations.
+- Study-first lesson cards before each checkpoint phase.
 - Multiple-choice checkpoints with server-side grading.
-- Hands-on tasks that encourage building and explaining real Laravel features.
-- Custom learning paths with target dates, confidence tracking, and weekly study minutes.
-- Learning logs for recording study sessions and reflections.
-- Progress cards for active paths, logged hours, completed checkpoints, weekly plan, and confidence.
-- Authentication, authorization policies, migrations, factories, seed data, and feature tests.
+- Explanations for correct MCQ answers after completion.
+- Hands-on implementation tasks that ask learners to build and explain real work.
+- Custom learning paths with target dates, confidence scores, and weekly study minutes.
+- Learning logs for study sessions and reflections.
+- Dashboard metrics for active paths, logged hours, checkpoints, weekly plan, and confidence.
+- Laravel authentication, authorization policies, migrations, factories, seed data, and feature tests.
 
-## Learning Tracks
+## Built-In Learning Tracks
 
-The built-in quest catalog includes:
+Each track currently includes 26 activities: 16 MCQs and 10 hands-on tasks.
 
-- PHP Foundations
-- Laravel Foundations
-- Laravel 13 Quest: Basics to Advanced
-- Modern Laravel Deep Dive
+| Track | Focus |
+| --- | --- |
+| PHP Foundations Quest | Variables, arrays, functions, classes, Composer, dependency boundaries |
+| Laravel Foundations Quest | Routes, controllers, validation, Eloquent, policies, tests |
+| Laravel 13 Quest: Basics to Advanced | Inertia, React, forms, authorization, queues, release confidence |
+| Modern Laravel Deep Dive Quest | Deployments, caches, workers, concurrency, operations, recovery |
 
-The first batch includes 56 total activities across the catalog. Each track combines multiple-choice checkpoints with hands-on tasks so learners have both recall practice and implementation work.
+The track structure is inspired by public topic organization from Laracasts Discover. The lessons, questions, explanations, and tasks in this repository are original.
 
-The track structure is inspired by public topic and category organization from Laracasts Discover, but the activities and quiz content in this repository are original.
+## Screenshots And Social Preview
+
+The GitHub social preview image is stored at:
+
+```text
+docs/assets/ll13-social-preview.png
+```
+
+Use that image in the GitHub repository social preview settings. It is 1280x640, which matches GitHub's recommended high-resolution preview size.
 
 ## Tech Stack
 
 - Laravel 13
-- PHP 8.4 recommended
+- PHP 8.4 recommended, PHP 8.3 minimum per Composer constraints
 - Inertia.js 2
 - React 19
 - TypeScript
@@ -40,9 +67,10 @@ The track structure is inspired by public topic and category organization from L
 
 ## Requirements
 
-- PHP 8.4 or newer
-- Composer
-- Node.js and npm
+- PHP 8.4 or newer recommended
+- Composer 2
+- Node.js 22 or newer
+- npm
 - SQLite
 
 ## Installation
@@ -50,6 +78,8 @@ The track structure is inspired by public topic and category organization from L
 Clone the repository and install dependencies:
 
 ```bash
+git clone git@github.com:NeXsHeLL/LL13.git
+cd LL13
 composer install
 npm install
 ```
@@ -74,11 +104,11 @@ Start the local development stack:
 composer run dev
 ```
 
-The app will be available at the Laravel development server URL printed in the terminal, typically `http://127.0.0.1:8000`.
+The Laravel development server URL is printed in the terminal, usually `http://127.0.0.1:8000`.
 
-## Seed Data
+## Demo Data
 
-To create a demo user and sample learning quest:
+Create a fresh database with the demo user and sample learning quest:
 
 ```bash
 php artisan migrate:fresh --seed
@@ -96,7 +126,7 @@ Password: password
 Run the backend test suite:
 
 ```bash
-php artisan test
+php artisan test --compact
 ```
 
 Format PHP:
@@ -105,10 +135,15 @@ Format PHP:
 php vendor/bin/pint
 ```
 
-Format and lint frontend assets:
+Check frontend formatting:
 
 ```bash
-npm run format
+npm run format:check
+```
+
+Lint frontend assets:
+
+```bash
 npm run lint
 ```
 
@@ -118,9 +153,17 @@ Build production assets:
 npm run build
 ```
 
+## Documentation
+
+- [Learning paths](docs/learning-paths.md)
+- [Development guide](docs/development.md)
+- [Roadmap](docs/roadmap.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+
 ## Repository Hygiene
 
-This repository intentionally excludes local environment files, installed dependencies, generated build assets, IDE folders, and local assistant/tooling metadata. Do not commit `.env`, `vendor`, `node_modules`, `public/build`, or agent-specific configuration files.
+This repository intentionally excludes local environment files, installed dependencies, generated build assets, IDE folders, and assistant/tooling metadata. Do not commit `.env`, `vendor`, `node_modules`, `public/build`, local SQLite databases, or agent-specific configuration files.
 
 ## License
 
